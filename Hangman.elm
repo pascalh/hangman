@@ -2,11 +2,11 @@ module Hangman where
 -- use a random wikipedia entry as word
 -- improve visualization
 
-import String 
+import String
 import Window
 import Random exposing (Generator,Seed,initialSeed,generate)
 import List
-import Set 
+import Set
 import Graphics.Input exposing (dropDown)
 
 import Graphics.Element exposing (..)
@@ -27,29 +27,29 @@ allowedMistakes = 4
 main : Signal Html
 main = StartApp.start { model = initialGame, view = view, update = update }
 
--- core types and functions 
+-- core types and functions
 
-type alias Word = String 
+type alias Word = String
 
 type State = Lost { word : Word }
            | Win
-           | Active { guessedCharacters : Set.Set Char , mistakesLeft : Int , word : Word } 
+           | Active { guessedCharacters : Set.Set Char , mistakesLeft : Int , word : Word }
            | Pregame
 
-type alias Game = 
-            { allowedMistakes : Int 
-            , state : State 
+type alias Game =
+            { allowedMistakes : Int
+            , state : State
             , seed : Seed
             , words : List Word
             }
 
 initialGame : Game
-initialGame = 
+initialGame =
   { allowedMistakes = allowedMistakes
   , state = Pregame
   , seed = initialSeed 37231
   , words = List.map String.toUpper knownWords
-  } 
+  }
 
 type Action = Guess Char | Start
 
@@ -59,19 +59,19 @@ update action model =
     Guess c   -> step c model
     Start     -> startGame model
 
-startGame : Game -> Game 
-startGame  game = 
+startGame : Game -> Game
+startGame  game =
   let (w,seed') = randomWord game
-  in 
-    { game | state <- Active { guessedCharacters = Set.empty 
+  in
+    { game | state <- Active { guessedCharacters = Set.empty
                          , mistakesLeft = game.allowedMistakes
                          , word = w
                          }
-           , seed <- seed'                                   
-    }                   
+           , seed <- seed'
+    }
 
 randomWord : Game -> (Word,Seed)
-randomWord game = 
+randomWord game =
   let maxIndex : Int
       maxIndex = List.length game.words - 1
 
@@ -81,32 +81,32 @@ randomWord game =
       get n xs = case List.head <| List.drop n xs  of
         Nothing -> ""
         Just w  -> w
-        
+
   in  (get randomIndex game.words , seed')
 
-step : Char -> Game -> Game 
+step : Char -> Game -> Game
 step c game = case game.state of
   Active {guessedCharacters , mistakesLeft , word } ->
-    let 
+    let
       s = game.state
-      state' = Active { guessedCharacters = Set.insert c guessedCharacters 
-               , mistakesLeft   = if mistakeMade c s then mistakesLeft - 1 else mistakesLeft 
+      state' = Active { guessedCharacters = Set.insert c guessedCharacters
+               , mistakesLeft   = if mistakeMade c s then mistakesLeft - 1 else mistakesLeft
                , word = word
                }
-      game' = { game | state <- state' }         
+      game' = { game | state <- state' }
     in { game | state <- nextState game'}
 
 -- could be inlined
 mistakeMade : Char -> State -> Bool
 mistakeMade char (Active {guessedCharacters , mistakesLeft , word }) = not <|
-  Set.member char guessedCharacters || 
+  Set.member char guessedCharacters ||
   elem char word
 
 isLost :  { a | mistakesLeft : Int } -> Bool
-isLost s = s.mistakesLeft < 0 
+isLost s = s.mistakesLeft < 0
 
 isWon : { a | guessedCharacters : Set.Set Char , word : String } -> Bool
-isWon {guessedCharacters , word } = 
+isWon {guessedCharacters , word } =
   isSubsetOf (Set.fromList <| String.toList word) guessedCharacters
 
 nextState : Game -> State
@@ -126,29 +126,29 @@ view address model = case model.state of
                    ]
   Win  -> div [] [fromElement <| leftAligned <| Text.fromString "You win!",button [onClick address Start] [text "New game"]
                    ]
-  Active s -> 
+  Active s ->
    div [] (
     --[ div [] [ text (toString model) ]]++
-    [fromElement <| flow down [ display s.guessedCharacters  s.word 
+    [fromElement <| flow down [ display s.guessedCharacters  s.word
               , leftAligned <| Text.fromString <| "Allowed number of mistakes: " ++ toString s.mistakesLeft
               ]
     ]
     ++ (List.map (\c -> buildGuessButton c s address) chars))
 
-buildGuessButton c s address = 
+buildGuessButton c s address =
   let alreadyGuessed = Set.member c s.guessedCharacters
-  in button [onClick address (Guess c), disabled alreadyGuessed] 
+  in button [onClick address (Guess c), disabled alreadyGuessed]
             [text (String.fromChar c)]
 
 chars : List Char
-chars = 
+chars =
  ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-display : Set.Set Char -> Word -> Element 
-display guessedChars word = 
+display : Set.Set Char -> Word -> Element
+display guessedChars word =
   let
-    visualize : Char -> Text 
-    visualize char = Text.fromString <| if Set.member char guessedChars 
+    visualize : Char -> Text
+    visualize char = Text.fromString <| if Set.member char guessedChars
                     then  " " ++ String.fromList [char] ++ " "
                     else " _ "
   in leftAligned <| Text.concat <| List.map visualize <| String.toList word
@@ -162,4 +162,4 @@ elem c str = case String.uncons str of
 
 isSubsetOf : Set.Set comparable -> Set.Set comparable -> Bool
 isSubsetOf set1 set2 =
-  Set.empty == Set.diff set1 set2 
+  Set.empty == Set.diff set1 set2
