@@ -88,21 +88,14 @@ step : Char -> Game -> Game
 step c game = case game.state of
   Active {guessedCharacters , mistakesLeft , word } ->
     let
-      s = game.state
+      mistakeMade = not <| Set.member c guessedCharacters || elem c word
       state' = Active { guessedCharacters = Set.insert c guessedCharacters
-               , mistakesLeft   = if mistakeMade c s then mistakesLeft - 1 else mistakesLeft
+               , mistakesLeft = if mistakeMade then mistakesLeft - 1 else mistakesLeft
                , word = word
                }
       game' = { game | state = state' }
     in { game | state = nextState game'}
   _ -> Debug.crash "A step can only be executed in an active game."
-
--- could be inlined
-mistakeMade : Char -> State -> Bool
-mistakeMade char s = case s of
-  Active {guessedCharacters , word } -> not <|
-    Set.member char guessedCharacters || elem char word
-  _ -> False
 
 isLost :  { a | mistakesLeft : Int } -> Bool
 isLost s = s.mistakesLeft < 0
