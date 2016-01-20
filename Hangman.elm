@@ -19,7 +19,7 @@ import Text exposing (fromString,Text)
 
 -- global config
 knownWords : List Word
-knownWords = ["welt", "foobar","a","aa","aaa"]
+knownWords = ["hello","world", "foobar","monad","functor","comonad"]
 
 allowedMistakes : Int
 allowedMistakes = 4
@@ -108,13 +108,13 @@ view address model = case model.state of
                    ]
   Active s ->
    div [] (
-    --[ div [] [ text (toString model) ]]++
     [fromElement <| flow down [ display s.guessedCharacters  s.word
               , leftAligned <| Text.fromString <| "Allowed number of mistakes: " ++ toString s.mistakesLeft
               ]
     ]
     ++ (List.map (\c -> buildGuessButton c s address) chars))
 
+buildGuessButton : Char -> { a | guessedCharacters : Set.Set Char } -> Address Action -> Html
 buildGuessButton c s address =
   let alreadyGuessed = Set.member c s.guessedCharacters
   in button [onClick address (Guess c), disabled alreadyGuessed]
