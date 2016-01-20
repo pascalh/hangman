@@ -89,28 +89,19 @@ step c game = case game.state of
   Active {guessedCharacters , mistakesLeft , word } ->
     let
       mistakeMade = not <| Set.member c guessedCharacters || elem c word
-      state' = Active { guessedCharacters = Set.insert c guessedCharacters
+      state' = { guessedCharacters = Set.insert c guessedCharacters
                , mistakesLeft = if mistakeMade then mistakesLeft - 1 else mistakesLeft
                , word = word
                }
-      game' = { game | state = state' }
-    in { game | state = nextState game'}
-  _ -> Debug.crash "A step can only be executed in an active game."
+    in { game | state = nextState state'}
+  _ -> game
 
-isLost :  { a | mistakesLeft : Int } -> Bool
-isLost s = s.mistakesLeft < 0
-
-isWon : { a | guessedCharacters : Set.Set Char , word : String } -> Bool
-isWon {guessedCharacters , word } =
-  isSubsetOf (Set.fromList <| String.toList word) guessedCharacters
-
-nextState : Game -> State
-nextState game = case game.state of
-  Pregame  -> Pregame
-  Win      -> Win
-  Lost w   -> Lost w
-  Active s -> if isLost s then Lost { word = s.word }
-                          else if isWon s then Win else Active s
+nextState :{ guessedCharacters : Set.Set Char, mistakesLeft : Int, word : Word } -> State
+nextState s =
+  let isLost = s.mistakesLeft < 0
+      isWon = isSubsetOf (Set.fromList <| String.toList s.word) s.guessedCharacters
+  in if isLost then Lost { word = s.word }
+              else if isWon then Win else Active s
 
 -- the view
 
