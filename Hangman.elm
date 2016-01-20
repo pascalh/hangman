@@ -74,21 +74,14 @@ randomWord : Game -> (Word,Seed)
 randomWord game =
   let maxIndex : Int
       maxIndex = List.length game.words - 1
-
       (randomIndex,seed') = generate (Random.int 0 maxIndex) game.seed
-
-      get : Int -> List Word -> Word
-      get n xs = case List.head <| List.drop n xs  of
-        Nothing -> ""
-        Just w  -> w
-
   in  (get randomIndex game.words , seed')
 
 step : Char -> Game -> Game
 step c game = case game.state of
   Active {guessedCharacters , mistakesLeft , word } ->
     let
-      mistakeMade = not <| Set.member c guessedCharacters || elem c word
+      mistakeMade = not <| Set.member c guessedCharacters || List.member c (String.toList word)
       state' = { guessedCharacters = Set.insert c guessedCharacters
                , mistakesLeft = if mistakeMade then mistakesLeft - 1 else mistakesLeft
                , word = word
@@ -142,11 +135,10 @@ display guessedChars word =
 
 -- helper functions
 
-elem : Char -> String -> Bool
-elem c str = case String.uncons str of
-  Nothing     -> False
-  Just (x,xs) -> x == c || elem c xs
+get : Int -> List Word -> Word
+get n list = case list  of
+    [] -> ""
+    x :: xs   -> if n == 0 then x else get (n-1) xs
 
 isSubsetOf : Set.Set comparable -> Set.Set comparable -> Bool
-isSubsetOf set1 set2 =
-  Set.empty == Set.diff set1 set2
+isSubsetOf set1 set2 = Set.empty == Set.diff set1 set2
