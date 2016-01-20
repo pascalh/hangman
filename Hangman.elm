@@ -13,7 +13,7 @@ import Graphics.Element exposing (..)
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (disabled)
-import StartApp
+import StartApp.Simple as StartApp
 import Signal exposing (..)
 import Text exposing (fromString,Text)
 
@@ -63,11 +63,11 @@ startGame : Game -> Game
 startGame  game =
   let (w,seed') = randomWord game
   in
-    { game | state <- Active { guessedCharacters = Set.empty
+    { game | state = Active { guessedCharacters = Set.empty
                          , mistakesLeft = game.allowedMistakes
                          , word = w
                          }
-           , seed <- seed'
+           , seed = seed'
     }
 
 randomWord : Game -> (Word,Seed)
@@ -93,14 +93,16 @@ step c game = case game.state of
                , mistakesLeft   = if mistakeMade c s then mistakesLeft - 1 else mistakesLeft
                , word = word
                }
-      game' = { game | state <- state' }
-    in { game | state <- nextState game'}
+      game' = { game | state = state' }
+    in { game | state = nextState game'}
+  _ -> Debug.crash "A step can only be executed in an active game."
 
 -- could be inlined
 mistakeMade : Char -> State -> Bool
-mistakeMade char (Active {guessedCharacters , mistakesLeft , word }) = not <|
-  Set.member char guessedCharacters ||
-  elem char word
+mistakeMade char s = case s of
+  Active {guessedCharacters , word } -> not <|
+    Set.member char guessedCharacters || elem char word
+  _ -> False
 
 isLost :  { a | mistakesLeft : Int } -> Bool
 isLost s = s.mistakesLeft < 0
@@ -111,6 +113,7 @@ isWon {guessedCharacters , word } =
 
 nextState : Game -> State
 nextState game = case game.state of
+  Pregame  -> Pregame
   Win      -> Win
   Lost w   -> Lost w
   Active s -> if isLost s then Lost { word = s.word }
