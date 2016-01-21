@@ -16,6 +16,7 @@ import Html.Attributes exposing (disabled)
 import StartApp.Simple as StartApp
 import Signal exposing (..)
 import Text exposing (fromString,Text)
+import Char exposing (fromCode)
 
 -- global config
 knownWords : List Word
@@ -121,8 +122,7 @@ buildGuessButton c s address =
             [text (String.fromChar c)]
 
 chars : List Char
-chars =
- ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+chars = List.map Char.fromCode [65..90]
 
 display : Set.Set Char -> Word -> Element
 display guessedChars word =
