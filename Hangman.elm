@@ -1,7 +1,4 @@
 module Hangman where
--- use a random wikipedia entry as word
--- improve visualization
-
 import String
 import Window
 import Random exposing (Generator,Seed,initialSeed,generate)
@@ -34,7 +31,10 @@ type alias Word = String
 
 type State = Lost { word : Word }
            | Win
-           | Active { guessedCharacters : Set.Set Char , mistakesLeft : Int , word : Word }
+           | Active { guessedCharacters : Set.Set Char
+                    , mistakesLeft : Int
+                    , word : Word
+                    }
            | Pregame
 
 type alias Game =
@@ -65,9 +65,9 @@ startGame  game =
   let (w,seed') = randomWord game
   in
     { game | state = Active { guessedCharacters = Set.empty
-                         , mistakesLeft = game.allowedMistakes
-                         , word = w
-                         }
+                            , mistakesLeft = game.allowedMistakes
+                            , word = w
+                            }
            , seed = seed'
     }
 
@@ -82,50 +82,62 @@ step : Char -> Game -> Game
 step c game = case game.state of
   Active {guessedCharacters , mistakesLeft , word } ->
     let
-      mistakeMade = not <| Set.member c guessedCharacters || List.member c (String.toList word)
+      mistakeMade = not <| Set.member c guessedCharacters ||
+                           List.member c (String.toList word)
       state' = { guessedCharacters = Set.insert c guessedCharacters
-               , mistakesLeft = if mistakeMade then mistakesLeft - 1 else mistakesLeft
+               , mistakesLeft = if mistakeMade then mistakesLeft - 1
+                                               else mistakesLeft
                , word = word
                }
     in { game | state = nextState state'}
   _ -> game
 
-nextState :{ guessedCharacters : Set.Set Char, mistakesLeft : Int, word : Word } -> State
+nextState : { guessedCharacters : Set.Set Char
+            , mistakesLeft : Int, word : Word }
+            -> State
 nextState s =
   let isLost = s.mistakesLeft < 0
-      isWon = isSubsetOf (Set.fromList <| String.toList s.word) s.guessedCharacters
+      isWon = isSubsetOf (Set.fromList <| String.toList s.word)
+                         s.guessedCharacters
   in if isLost then Lost { word = s.word }
-              else if isWon then Win else Active s
+               else if isWon then Win else Active s
 
 -- the view
+newGame : Address Action ->  Html
+newGame address = button [onClick address Start] [text "New game"]
 
 view : Address Action -> Game -> Html
-view address model = case model.state of
-  Pregame -> div [] [button [onClick address Start] [text "New game"]]
-  Lost s -> div [] [fromElement <| leftAligned <| Text.fromString <| "You lost! The hidden word was \""++s.word++"\""
-                   ,button [onClick address Start] [text "New game"]
-                   ]
-  Win  -> div [] [fromElement <| leftAligned <| Text.fromString "You win!",button [onClick address Start] [text "New game"]
-                   ]
+view address game = div [] <| case game.state of
+  Pregame -> [newGame address]
+  Lost s -> [fromElement <| leftAligned
+                         <| Text.fromString
+                         <| "You lost! The hidden word was \""++s.word++"\""
+            ,newGame address
+            ]
+  Win  -> [fromElement <| leftAligned
+                       <| Text.fromString "You won!"
+          ,newGame address
+          ]
   Active s ->
-   div [] (
-    [fromElement <| flow down [ display s.guessedCharacters  s.word
-              , leftAligned <| Text.fromString <| "Allowed number of mistakes: " ++ toString s.mistakesLeft
-              ]
+    [fromElement <| flow down
+      [ displayWord s.guessedCharacters  s.word
+      , leftAligned <| Text.fromString
+                    <| "Allowed number of mistakes: " ++ toString s.mistakesLeft
+      ]
     ]
-    ++ (List.map (\c -> buildGuessButton c s address) chars))
+    ++ (List.map (\c -> buildGuessButton c s.guessedCharacters address) chars)
 
-buildGuessButton : Char -> { a | guessedCharacters : Set.Set Char } -> Address Action -> Html
-buildGuessButton c s address =
-  let alreadyGuessed = Set.member c s.guessedCharacters
+buildGuessButton : Char -> Set.Set Char -> Address Action -> Html
+buildGuessButton c guessedCharacters address =
+  let alreadyGuessed = Set.member c guessedCharacters
   in button [onClick address (Guess c), disabled alreadyGuessed]
             [text (String.fromChar c)]
 
 chars : List Char
 chars = List.map Char.fromCode [65..90]
 
-display : Set.Set Char -> Word -> Element
-display guessedChars word =
+displayWord : Set.Set Char -> Word -> Element
+displayWord guessedChars word =
   let
     visualize : Char -> Text
     visualize char = Text.fromString <| if Set.member char guessedChars
