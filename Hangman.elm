@@ -6,7 +6,7 @@ import Set
 
 import Html exposing (..)
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (disabled)
+import Html.Attributes exposing (style,disabled)
 import Html.App exposing (program)
 import Char exposing (fromCode)
 
@@ -105,7 +105,7 @@ newGame : Html Msg
 newGame = button [onClick GenerateWord] [text "New game"]
 
 view : Game -> Html Msg
-view game = div [] <| case game.state of
+view game = div [style css] <| case game.state of
   Pregame -> []
   Lost s -> [h2 [] [text <| "You lost! The hidden word was \""++s.word++"\""]
             ,newGame
@@ -114,11 +114,13 @@ view game = div [] <| case game.state of
           ,newGame
           ]
   Active s ->
-    [ h2 [] [text <| displayString s.guessedCharacters  s.word]
+    [ h1 [] [text <| displayString s.guessedCharacters  s.word]
     , text <| "Allowed number of mistakes: " ++ toString s.mistakesLeft
+    , br [] []
+    , br [] []
     ]
     ++ (List.map (\c -> buildGuessButton c s.guessedCharacters) chars)
-    ++ [newGame]
+    ++ [br [] [], br [] [], newGame]
 
 buildGuessButton : Char -> Set.Set Char -> Html Msg
 buildGuessButton c guessedCharacters =
@@ -137,6 +139,14 @@ displayString guessedChars word =
                     then  " " ++ String.fromList [char] ++ " "
                     else " _ "
   in String.concat <| List.map visualize <| String.toList word
+
+css : List (String, String)
+css =
+    [ ("font-family", "sans-serif")
+    , ("color", "rgb(3, 33, 73)")
+    , ("text-align", "center")
+    , ("background-color", "rgb(200, 220, 200)")
+    ]
 
 -- helper functions
 
