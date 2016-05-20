@@ -1,82 +1,79 @@
-module Hangman where
+module Hangman exposing (main)
 import String
-import Window
-import Random exposing (Generator,Seed,initialSeed,generate)
+import Random exposing (Generator,Seed,initialSeed,generate,map)
 import List
 import Set
-import Graphics.Input exposing (dropDown)
 
-import Graphics.Element exposing (..)
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (disabled)
-import StartApp.Simple as StartApp
-import Signal exposing (..)
-import Text exposing (fromString,Text)
+import Html.App exposing (program)
 import Char exposing (fromCode)
 
 -- global config
-knownWords : List Word
-knownWords = ["hello","world", "foobar","monad","functor","comonad"]
+knownStrings : List String
+knownStrings = List.map String.toUpper
+  ["hello","world", "foobar","monad","functor","comonad"]
 
 allowedMistakes : Int
 allowedMistakes = 4
 
-main : Signal Html
-main = StartApp.start { model = initialGame, view = view, update = update }
+-- the main program loop
+
+main : Program Never
+main = Html.App.program
+  { view = view
+  , update = update
+  , init = (initialGame,generate StartWith wordGen)
+  , subscriptions = \_ -> Sub.none
+  }
 
 -- core types and functions
 
-type alias Word = String
-
-type State = Lost { word : Word }
+type State = Lost { word : String }
            | Win
            | Active { guessedCharacters : Set.Set Char
                     , mistakesLeft : Int
-                    , word : Word
+                    , word : String
                     }
            | Pregame
 
 type alias Game =
             { allowedMistakes : Int
             , state : State
-            , seed : Seed
-            , words : List Word
+            , words : List String
             }
 
 initialGame : Game
 initialGame =
   { allowedMistakes = allowedMistakes
   , state = Pregame
-  , seed = initialSeed 37231
-  , words = List.map String.toUpper knownWords
+  , words = knownStrings
   }
 
-type Action = Guess Char | Start
+type Msg = Guess Char | GenerateWord | StartWith String
 
-update : Action -> Game -> Game
+update : Msg -> Game -> (Game,Cmd Msg)
 update action model =
   case action of
-    Guess c   -> step c model
-    Start     -> startGame model
+    Guess c      -> (step c model,Cmd.none)
+    GenerateWord -> (initialGame,generate StartWith wordGen)
+    StartWith w  -> (startGameWith w model,Cmd.none)
 
-startGame : Game -> Game
-startGame  game =
-  let (w,seed') = randomWord game
-  in
-    { game | state = Active { guessedCharacters = Set.empty
-                            , mistakesLeft = game.allowedMistakes
-                            , word = w
-                            }
-           , seed = seed'
-    }
 
-randomWord : Game -> (Word,Seed)
-randomWord game =
+startGameWith : String -> Game -> Game
+startGameWith w game =
+  { game | state = Active { guessedCharacters = Set.empty
+                          , mistakesLeft = game.allowedMistakes
+                          , word = w
+                          }
+  }
+
+wordGen : Generator String
+wordGen =
   let maxIndex : Int
-      maxIndex = List.length game.words - 1
-      (randomIndex,seed') = generate (Random.int 0 maxIndex) game.seed
-  in  (get randomIndex game.words , seed')
+      maxIndex = List.length knownStrings - 1
+  in  Random.map (\index -> get index knownStrings)  (Random.int 0 maxIndex)
 
 step : Char -> Game -> Game
 step c game = case game.state of
@@ -93,7 +90,7 @@ step c game = case game.state of
   _ -> game
 
 nextState : { guessedCharacters : Set.Set Char
-            , mistakesLeft : Int, word : Word }
+            , mistakesLeft : Int, word : String }
             -> State
 nextState s =
   let isLost = s.mistakesLeft < 0
@@ -103,51 +100,47 @@ nextState s =
                else if isWon then Win else Active s
 
 -- the view
-newGame : Address Action ->  Html
-newGame address = button [onClick address Start] [text "New game"]
 
-view : Address Action -> Game -> Html
-view address game = div [] <| case game.state of
-  Pregame -> [newGame address]
-  Lost s -> [fromElement <| leftAligned
-                         <| Text.fromString
-                         <| "You lost! The hidden word was \""++s.word++"\""
-            ,newGame address
+newGame : Html Msg
+newGame = button [onClick GenerateWord] [text "New game"]
+
+view : Game -> Html Msg
+view game = div [] <| case game.state of
+  Pregame -> []
+  Lost s -> [h2 [] [text <| "You lost! The hidden word was \""++s.word++"\""]
+            ,newGame
             ]
-  Win  -> [fromElement <| leftAligned
-                       <| Text.fromString "You won!"
-          ,newGame address
+  Win  -> [h2 [] [text "You won!"]
+          ,newGame
           ]
   Active s ->
-    [fromElement <| flow down
-      [ displayWord s.guessedCharacters  s.word
-      , leftAligned <| Text.fromString
-                    <| "Allowed number of mistakes: " ++ toString s.mistakesLeft
-      ]
+    [ h2 [] [text <| displayString s.guessedCharacters  s.word]
+    , text <| "Allowed number of mistakes: " ++ toString s.mistakesLeft
     ]
-    ++ (List.map (\c -> buildGuessButton c s.guessedCharacters address) chars)
+    ++ (List.map (\c -> buildGuessButton c s.guessedCharacters) chars)
+    ++ [newGame]
 
-buildGuessButton : Char -> Set.Set Char -> Address Action -> Html
-buildGuessButton c guessedCharacters address =
+buildGuessButton : Char -> Set.Set Char -> Html Msg
+buildGuessButton c guessedCharacters =
   let alreadyGuessed = Set.member c guessedCharacters
-  in button [onClick address (Guess c), disabled alreadyGuessed]
+  in button [onClick (Guess c), disabled alreadyGuessed]
             [text (String.fromChar c)]
 
 chars : List Char
 chars = List.map Char.fromCode [65..90]
 
-displayWord : Set.Set Char -> Word -> Element
-displayWord guessedChars word =
+displayString : Set.Set Char -> String -> String
+displayString guessedChars word =
   let
-    visualize : Char -> Text
-    visualize char = Text.fromString <| if Set.member char guessedChars
+    visualize : Char -> String
+    visualize char = if Set.member char guessedChars
                     then  " " ++ String.fromList [char] ++ " "
                     else " _ "
-  in leftAligned <| Text.concat <| List.map visualize <| String.toList word
+  in String.concat <| List.map visualize <| String.toList word
 
 -- helper functions
 
-get : Int -> List Word -> Word
+get : Int -> List String -> String
 get n list = case list  of
     [] -> ""
     x :: xs   -> if n == 0 then x else get (n-1) xs
