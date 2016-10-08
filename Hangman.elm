@@ -6,7 +6,7 @@ import List
 import Set
 import Html exposing (..)
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (style, disabled)
+import Html.Attributes exposing (style, disabled, href, target)
 import Html.App exposing (program)
 import Char exposing (fromCode)
 import Task exposing (perform)
@@ -25,15 +25,6 @@ allowedMistakes =
 minLength : Int
 minLength =
     5
-
-
-{-| a couple of nouns, which are in the pool if fetching online library fails
--}
-library : List String
-library =
-    List.filter
-        (\w -> (String.length w) >= minLength)
-        [ "chair", "table", "window", "mirror", "supermarket" ]
 
 
 
@@ -85,6 +76,7 @@ type State
         , word : String
         }
     | Pregame
+    | LibraryFetchError
 
 
 type alias Game =
@@ -102,8 +94,8 @@ initialGame =
 
 type Msg
     = Guess Char
-    | GenerateWord
-    | StartWith String
+    | NewGame
+    | StartGameWithWord String
     | FetchLibError Http.Error
     | FetchLibSuccess (List String)
 
@@ -112,27 +104,27 @@ update : Msg -> Game -> ( Game, Cmd Msg )
 update action model =
     case action of
         FetchLibError _ ->
-            ( { model | words = [ "hallo" ] }, Cmd.none )
+            ( { model | state = LibraryFetchError }, Cmd.none )
 
         FetchLibSuccess s ->
             let
                 model' =
                     { model | words = s }
             in
-                ( model', generate StartWith (wordGen model') )
+                ( model', generate StartGameWithWord (wordGen model') )
 
         Guess c ->
             ( step c model, Cmd.none )
 
-        GenerateWord ->
-            ( initialGame, generate StartWith (wordGen model) )
+        NewGame ->
+            ( model, generate StartGameWithWord (wordGen model) )
 
-        StartWith w ->
-            ( startGameWith w model, Cmd.none )
+        StartGameWithWord w ->
+            ( startGameWithWord w model, Cmd.none )
 
 
-startGameWith : String -> Game -> Game
-startGameWith w game =
+startGameWithWord : String -> Game -> Game
+startGameWithWord w game =
     { game
         | state =
             Active
@@ -208,13 +200,30 @@ nextState s =
 
 newGame : Html Msg
 newGame =
-    button [ onClick GenerateWord ] [ text "New game" ]
+    div []
+        [ button [ onClick NewGame ] [ text "New game" ]
+        ]
 
 
 view : Game -> Html Msg
 view game =
-    div [ style css ] <|
+    div
+        [ style
+            (( "margin-left", "50px" )
+                :: ( "margin-right", "50px" )
+                :: css
+            )
+        ]
+    <|
         case game.state of
+            LibraryFetchError ->
+                [ h2 []
+                    [ text "Could not fetch remote word list from "
+                    , linkToWordLibrary
+                    , text ". Check your internet connection."
+                    ]
+                ]
+
             Pregame ->
                 []
 
@@ -236,7 +245,7 @@ view game =
             Active s ->
                 [ h1 [] [ text <| displayString s.guessedCharacters s.word ]
                 , text <|
-                    "Allowed number of mistakes: "
+                    "Allowed number of mistakes left: "
                         ++ toString s.mistakesLeft
                 , br [] []
                 , br [] []
@@ -245,7 +254,26 @@ view game =
                             (\char -> buildGuessButton char s.guessedCharacters)
                             chars
                        )
-                    ++ [ br [] [], br [] [], newGame ]
+                    ++ [ br [] []
+                       , br [] []
+                       , newGame
+                       , br [] []
+                       , div []
+                            [ text <| "The words are randomly selected from a "
+                            , linkToWordLibrary
+                            , text "."
+                            ]
+                       ]
+
+
+linkToWordLibrary : Html a
+linkToWordLibrary =
+    a
+        [ href "https://github.com/dariusk/corpora/blob/master/data/words/nouns.json"
+        , target "_blank"
+        , style [ ( "color", "rgb(3, 33, 73)" ) ]
+        ]
+        [ text "dictionary" ]
 
 
 buildGuessButton : Char -> Set.Set Char -> Html Msg
@@ -282,6 +310,8 @@ css =
     , ( "color", "rgb(3, 33, 73)" )
     , ( "text-align", "center" )
     , ( "background-color", "rgb(200, 220, 200)" )
+    , ( "padding-top", "70px" )
+    , ( "padding-bottom", "50px" )
     ]
 
 
