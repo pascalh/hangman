@@ -9,23 +9,31 @@ import Html.Events exposing (onClick)
 import Html.Attributes exposing (style, disabled)
 import Html.App exposing (program)
 import Char exposing (fromCode)
+import Task exposing (perform)
+import Http exposing (get)
+import Json.Decode exposing (..)
 
 
--- TODO
--- use the following noun list
--- http://www.desiquintans.com/downloads/nounlist/nounlist.txt
 -- global config
-
-
-knownStrings : List String
-knownStrings =
-    List.map String.toUpper
-        [ "hello", "world", "foobar", "monad", "functor", "comonad" ]
 
 
 allowedMistakes : Int
 allowedMistakes =
     4
+
+
+minLength : Int
+minLength =
+    5
+
+
+{-| a couple of nouns, which are in the pool if fetching online library fails
+-}
+library : List String
+library =
+    List.filter
+        (\w -> (String.length w) >= minLength)
+        [ "chair", "table", "window", "mirror", "supermarket" ]
 
 
 
@@ -37,9 +45,31 @@ main =
     Html.App.program
         { view = view
         , update = update
-        , init = ( initialGame, generate StartWith wordGen )
+        , init = ( initialGame, fetchLibrary )
         , subscriptions = \_ -> Sub.none
         }
+
+
+fetchLibrary : Cmd Msg
+fetchLibrary =
+    let
+        decodeLibrary : Decoder (List String)
+        decodeLibrary =
+            Json.Decode.map
+                (List.filter
+                    (\w -> (String.length w) >= minLength)
+                )
+            <|
+                at [ "nouns" ] (list string)
+
+        liburl : String
+        liburl =
+            "https://raw.githubusercontent.com/dariusk/corpora/master/data/words/nouns.json"
+    in
+        Task.perform
+            FetchLibError
+            FetchLibSuccess
+            (Http.get decodeLibrary liburl)
 
 
 
@@ -58,17 +88,15 @@ type State
 
 
 type alias Game =
-    { allowedMistakes : Int
-    , state : State
+    { state : State
     , words : List String
     }
 
 
 initialGame : Game
 initialGame =
-    { allowedMistakes = allowedMistakes
-    , state = Pregame
-    , words = knownStrings
+    { state = Pregame
+    , words = []
     }
 
 
@@ -76,16 +104,28 @@ type Msg
     = Guess Char
     | GenerateWord
     | StartWith String
+    | FetchLibError Http.Error
+    | FetchLibSuccess (List String)
 
 
 update : Msg -> Game -> ( Game, Cmd Msg )
 update action model =
     case action of
+        FetchLibError _ ->
+            ( { model | words = [ "hallo" ] }, Cmd.none )
+
+        FetchLibSuccess s ->
+            let
+                model' =
+                    { model | words = s }
+            in
+                ( model', generate StartWith (wordGen model') )
+
         Guess c ->
             ( step c model, Cmd.none )
 
         GenerateWord ->
-            ( initialGame, generate StartWith wordGen )
+            ( initialGame, generate StartWith (wordGen model) )
 
         StartWith w ->
             ( startGameWith w model, Cmd.none )
@@ -97,20 +137,20 @@ startGameWith w game =
         | state =
             Active
                 { guessedCharacters = Set.empty
-                , mistakesLeft = game.allowedMistakes
-                , word = w
+                , mistakesLeft = allowedMistakes
+                , word = String.toUpper w
                 }
     }
 
 
-wordGen : Generator String
-wordGen =
+wordGen : Game -> Generator String
+wordGen model =
     let
         maxIndex : Int
         maxIndex =
-            List.length knownStrings - 1
+            (List.length model.words) - 1
     in
-        Random.map (\index -> get index knownStrings) (Random.int 0 maxIndex)
+        Random.map (\index -> get index model.words) (Random.int 0 maxIndex)
 
 
 step : Char -> Game -> Game
