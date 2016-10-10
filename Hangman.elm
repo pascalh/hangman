@@ -101,26 +101,26 @@ type Msg
 
 
 update : Msg -> Game -> ( Game, Cmd Msg )
-update action model =
+update action game =
     case action of
         FetchLibError _ ->
-            ( { model | state = LibraryFetchError }, Cmd.none )
+            ( { game | state = LibraryFetchError }, Cmd.none )
 
         FetchLibSuccess s ->
             let
-                model' =
-                    { model | words = s }
+                game' =
+                    { game | words = s }
             in
-                ( model', generate StartGameWithWord (wordGen model') )
+                ( game', generate StartGameWithWord (wordGen game') )
 
         Guess c ->
-            ( step c model, Cmd.none )
+            ( step c game, Cmd.none )
 
         NewGame ->
-            ( model, generate StartGameWithWord (wordGen model) )
+            ( game, generate StartGameWithWord (wordGen game) )
 
         StartGameWithWord w ->
-            ( startGameWithWord w model, Cmd.none )
+            ( startGameWithWord w game, Cmd.none )
 
 
 startGameWithWord : String -> Game -> Game
@@ -136,13 +136,13 @@ startGameWithWord w game =
 
 
 wordGen : Game -> Generator String
-wordGen model =
+wordGen game =
     let
         maxIndex : Int
         maxIndex =
-            (List.length model.words) - 1
+            (List.length game.words) - 1
     in
-        Random.map (\index -> get index model.words) (Random.int 0 maxIndex)
+        Random.map (\index -> get index game.words) (Random.int 0 maxIndex)
 
 
 step : Char -> Game -> Game
@@ -200,7 +200,7 @@ nextState s =
 
 newGame : Html Msg
 newGame =
-    div []
+    div [ style [ ( "padding-top", "50px" ) ] ]
         [ button [ onClick NewGame ] [ text "New game" ]
         ]
 
