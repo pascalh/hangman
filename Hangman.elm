@@ -14,20 +14,6 @@ import Http exposing (get)
 import Json.Decode exposing (..)
 
 
--- global config
-
-
-allowedMistakes : Int
-allowedMistakes =
-    4
-
-
-minLength : Int
-minLength =
-    5
-
-
-
 -- the main program loop
 
 
@@ -46,12 +32,7 @@ fetchLibrary =
     let
         decodeLibrary : Decoder (List String)
         decodeLibrary =
-            Json.Decode.map
-                (List.filter
-                    (\w -> (String.length w) >= minLength)
-                )
-            <|
-                at [ "nouns" ] (list string)
+            at [ "nouns" ] (list string)
 
         liburl : String
         liburl =
@@ -79,9 +60,16 @@ type State
     | LibraryFetchError
 
 
+type Page
+    = Gameboard
+    | Options
+
+
 type alias Game =
     { state : State
     , words : List String
+    , minWordSize : Int
+    , page : Page
     }
 
 
@@ -89,6 +77,8 @@ initialGame : Game
 initialGame =
     { state = Pregame
     , words = []
+    , minWordSize = 8
+    , page = Gameboard
     }
 
 
@@ -98,6 +88,8 @@ type Msg
     | StartGameWithWord String
     | FetchLibError Http.Error
     | FetchLibSuccess (List String)
+    | OpenPage Page
+    | MinWordSizeModify (Int -> Int)
 
 
 update : Msg -> Game -> ( Game, Cmd Msg )
@@ -106,10 +98,10 @@ update action game =
         FetchLibError _ ->
             ( { game | state = LibraryFetchError }, Cmd.none )
 
-        FetchLibSuccess s ->
+        FetchLibSuccess lib ->
             let
                 game' =
-                    { game | words = s }
+                    { game | words = List.filter containsOnlyLetters lib }
             in
                 ( game', generate StartGameWithWord (wordGen game') )
 
@@ -122,6 +114,19 @@ update action game =
         StartGameWithWord w ->
             ( startGameWithWord w game, Cmd.none )
 
+        MinWordSizeModify f ->
+            let
+                newMinWordSize : Int
+                newMinWordSize =
+                    f <| game.minWordSize
+            in
+                ( { game | minWordSize = newMinWordSize }
+                , Cmd.none
+                )
+
+        OpenPage p ->
+            ( { game | page = p }, Cmd.none )
+
 
 startGameWithWord : String -> Game -> Game
 startGameWithWord w game =
@@ -129,8 +134,8 @@ startGameWithWord w game =
         | state =
             Active
                 { guessedCharacters = Set.empty
-                , mistakesLeft = allowedMistakes
-                , word = String.toUpper w
+                , mistakesLeft = 6
+                , word = w
                 }
     }
 
@@ -138,11 +143,19 @@ startGameWithWord w game =
 wordGen : Game -> Generator String
 wordGen game =
     let
+        words : List String
+        words =
+            List.filter
+                (\w -> String.length w >= game.minWordSize)
+                game.words
+
         maxIndex : Int
         maxIndex =
-            (List.length game.words) - 1
+            (List.length words) - 1
     in
-        Random.map (\index -> get index game.words) (Random.int 0 maxIndex)
+        Random.map
+            (\index -> String.toUpper <| get index words)
+            (Random.int 0 maxIndex)
 
 
 step : Char -> Game -> Game
@@ -198,6 +211,16 @@ nextState s =
 -- the view
 
 
+view : Game -> Html Msg
+view game =
+    case game.page of
+        Options ->
+            viewOptions game
+
+        Gameboard ->
+            viewGameboard game
+
+
 newGame : Html Msg
 newGame =
     div [ style [ ( "padding-top", "50px" ) ] ]
@@ -205,8 +228,15 @@ newGame =
         ]
 
 
-view : Game -> Html Msg
-view game =
+options : Html Msg
+options =
+    div [ style [] ]
+        [ button [ onClick (OpenPage Options) ] [ text "Options" ]
+        ]
+
+
+viewGameboard : Game -> Html Msg
+viewGameboard game =
     div
         [ style
             (( "margin-left", "50px" )
@@ -257,6 +287,7 @@ view game =
                     ++ [ br [] []
                        , br [] []
                        , newGame
+                       , options
                        , br [] []
                        , div []
                             [ text <| "The words are randomly selected from a "
@@ -304,6 +335,20 @@ displayString guessedChars word =
         String.concat <| List.map visualize <| String.toList word
 
 
+viewOptions : Game -> Html Msg
+viewOptions game =
+    div [ style css ]
+        [ text "Select the minimum length of words:"
+        , div []
+            [ button [ onClick (MinWordSizeModify (\x -> x - 1)) ] [ text "-" ]
+            , text <| toString <| game.minWordSize
+            , button [ onClick (MinWordSizeModify (\x -> x + 1)) ] [ text "+" ]
+            ]
+        , br [] []
+        , button [ onClick (OpenPage Gameboard) ] [ text "back" ]
+        ]
+
+
 css : List ( String, String )
 css =
     [ ( "font-family", "sans-serif" )
@@ -335,3 +380,8 @@ get n list =
 isSubsetOf : Set.Set comparable -> Set.Set comparable -> Bool
 isSubsetOf set1 set2 =
     Set.empty == Set.diff set1 set2
+
+
+containsOnlyLetters : String -> Bool
+containsOnlyLetters str =
+    String.all (\c -> List.member (Char.toUpper c) chars) str
