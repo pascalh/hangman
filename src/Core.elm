@@ -3,7 +3,6 @@ module Core exposing (update, initialGame, fetchLibrary)
 import Random exposing (Generator, Seed, initialSeed, generate, map)
 import String
 import Set
-import Task exposing (perform)
 import Http exposing (get)
 import Json.Decode exposing (..)
 import Types exposing (..)
@@ -13,15 +12,15 @@ import Util exposing (..)
 update : Msg -> Game -> ( Game, Cmd Msg )
 update action game =
     case action of
-        FetchLibError _ ->
-            ( { game | state = LibraryFetchError }, Cmd.none )
+        LibraryFetch (Err e) ->
+            ( { game | state = LibraryFetchError e }, Cmd.none )
 
-        FetchLibSuccess lib ->
+        LibraryFetch (Ok lib) ->
             let
-                game' =
+                newGame =
                     { game | words = List.filter containsOnlyLetters lib }
             in
-                ( game', generate StartGameWithWord (wordGen game') )
+                ( newGame, generate StartGameWithWord (wordGen newGame) )
 
         Guess c ->
             ( step c game, Cmd.none )
@@ -95,7 +94,7 @@ step c game =
                         Set.member c guessedCharacters
                             || List.member c (String.toList word)
 
-                state' =
+                newState =
                     { guessedCharacters = Set.insert c guessedCharacters
                     , mistakesLeft =
                         if mistakeMade then
@@ -105,7 +104,7 @@ step c game =
                     , word = word
                     }
             in
-                { game | state = nextState state' }
+                { game | state = nextState newState }
 
         _ ->
             game
@@ -145,7 +144,6 @@ fetchLibrary =
         liburl =
             "https://raw.githubusercontent.com/dariusk/corpora/master/data/words/nouns.json"
     in
-        Task.perform
-            FetchLibError
-            FetchLibSuccess
-            (Http.get decodeLibrary liburl)
+        Http.send
+            LibraryFetch
+            (Http.get liburl decodeLibrary)

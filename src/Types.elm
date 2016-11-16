@@ -13,7 +13,7 @@ type State
         , word : String
         }
     | Pregame
-    | LibraryFetchError
+    | LibraryFetchError Http.Error
 
 
 type Page
@@ -33,7 +33,6 @@ type Msg
     = Guess Char
     | NewGame
     | StartGameWithWord String
-    | FetchLibError Http.Error
-    | FetchLibSuccess (List String)
+    | LibraryFetch (Result Http.Error (List String))
     | OpenPage Page
     | MinWordSizeModify (Int -> Int)

@@ -3,12 +3,12 @@ module Hangman exposing (main)
 import Types exposing (..)
 import View exposing (view)
 import Core exposing (update, initialGame, fetchLibrary)
-import Html.App exposing (program)
+import Html exposing (program)
 
 
-main : Program Never
+main : Program Never Game Msg
 main =
-    Html.App.program
+    Html.program
         { view = view
         , update = update
         , init = ( initialGame, fetchLibrary )

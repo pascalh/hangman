@@ -30,4 +30,4 @@ containsOnlyLetters str =
 
 chars : List Char
 chars =
-    List.map fromCode [65..90]
+    List.map fromCode <| List.range 65 90

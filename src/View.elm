@@ -44,11 +44,12 @@ viewGameboard game =
         ]
     <|
         case game.state of
-            LibraryFetchError ->
+            LibraryFetchError e ->
                 [ h2 []
                     [ text "Could not fetch remote word list from "
                     , linkToWordLibrary
-                    , text ". Check your internet connection."
+                    , text ". "
+                    , text <| toString e
                     ]
                 ]
 
