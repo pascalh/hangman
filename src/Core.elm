@@ -9,6 +9,16 @@ import Types exposing (..)
 import Util exposing (..)
 
 
+defaultMinWordSize : Int
+defaultMinWordSize =
+    8
+
+
+numberOfAllowedMistakes : Int
+numberOfAllowedMistakes =
+    6
+
+
 update : Msg -> Game -> ( Game, Cmd Msg )
 update action game =
     case action of
@@ -49,7 +59,7 @@ initialGame : Game
 initialGame =
     { state = Pregame
     , words = []
-    , minWordSize = 8
+    , minWordSize = defaultMinWordSize
     , page = Gameboard
     }
 
@@ -60,7 +70,7 @@ startGameWithWord w game =
         | state =
             Active
                 { guessedCharacters = Set.empty
-                , mistakesLeft = 6
+                , mistakesLeft = numberOfAllowedMistakes
                 , word = w
                 }
     }
