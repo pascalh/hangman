@@ -1,6 +1,6 @@
 module Hangman exposing (main)
 
-import Types exposing (..)
+import Types exposing (Msg, Game)
 import View exposing (view)
 import Core exposing (update, initialGame, fetchLibrary)
 import Html exposing (program)
