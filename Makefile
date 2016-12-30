@@ -1,7 +1,7 @@
 build:
 	elm-make src/Main.elm --yes --warn --output out/Main.html
 clean:
-	rm -r out/
+	rm -rf out/
 deploy:
 	git checkout gh-pages
 	make
