@@ -10,3 +10,5 @@ deploy:
 	git commit -m "Deploy"
 	git push origin gh-pages
 	git checkout master
+test:
+	elm test

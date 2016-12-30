@@ -7,15 +7,18 @@ import Char exposing (..)
 
 get : Int -> List String -> String
 get n list =
-    case list of
-        [] ->
-            ""
+    if n < 0 then
+        ""
+    else
+        case list of
+            [] ->
+                ""
 
-        x :: xs ->
-            if n == 0 then
-                x
-            else
-                get (n - 1) xs
+            x :: xs ->
+                if n == 0 then
+                    x
+                else
+                    get (n - 1) xs
 
 
 isSubsetOf : Set.Set comparable -> Set.Set comparable -> Bool
