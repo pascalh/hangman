@@ -1,19 +1,29 @@
 module UtilTest exposing (testUtil)
 
 import Test exposing (..)
-import Expect exposing (equal)
-import Fuzz exposing (list, int, tuple, string, Fuzzer)
-import Util exposing (get)
+import Expect exposing (..)
+import Fuzz exposing (..)
+import Util exposing (get, containsOnlyLetters)
 
 
 testUtil : Test
 testUtil =
     describe "Util Test Suite"
-        [ describe "Get"
-            [ propGetWorks
-            , propGetEmptyList
-            , propGetNegativeIndex
-            ]
+        [ testsGet
+        , testsContainsOnlyLetters
+        ]
+
+
+
+--Tests for get
+
+
+testsGet : Test
+testsGet =
+    describe "Get"
+        [ propGetWorks
+        , propGetEmptyList
+        , propGetNegativeIndex
         ]
 
 
@@ -48,3 +58,31 @@ propGetNegativeIndex =
             "Get returns empty string for negative index"
         <|
             \( list, index ) -> equal (get index list) ""
+
+
+
+-- Tests for containsOnlyLetters
+
+
+testsContainsOnlyLetters : Test
+testsContainsOnlyLetters =
+    describe "containsOnlyLetters"
+        [ containsTest "" True
+        , containsTest "abc1" False
+        , containsTest "a1a" False
+        , containsTest "1aa" False
+        , containsTest "a a" False
+        , containsTest "abc" True
+        , containsTest "Abc" True
+        ]
+
+
+containsTest : String -> Bool -> Test
+containsTest word expected =
+    let
+        description =
+            "word under test \"" ++ word ++ "\""
+    in
+        test description <|
+            \() ->
+                equal expected (containsOnlyLetters word)
