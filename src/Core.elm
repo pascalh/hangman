@@ -1,10 +1,12 @@
-module Core exposing (update, initialGame, fetchLibrary)
+module Core exposing (update, initialGame, fetchLibrary, subscriptions)
 
 import Random exposing (Generator, Seed, initialSeed, generate, map)
 import String
 import Set
 import Http exposing (get)
 import Json.Decode exposing (..)
+import Char exposing (toCode)
+import Keyboard
 import Types exposing (..)
 import Util exposing (..)
 
@@ -22,6 +24,9 @@ numberOfAllowedMistakes =
 update : Msg -> Game -> ( Game, Cmd Msg )
 update action game =
     case action of
+        DoNothing ->
+            ( game, Cmd.none )
+
         LibraryFetch (Err e) ->
             ( { game | state = LibraryFetchError e }, Cmd.none )
 
@@ -157,3 +162,27 @@ fetchLibrary =
         Http.send
             LibraryFetch
             (Http.get liburl decodeLibrary)
+
+
+subscriptions : Game -> Sub Msg
+subscriptions game =
+    case game.state of
+        Active _ ->
+            keyboardGuess
+
+        _ ->
+            Sub.none
+
+
+keyboardGuess : Sub Msg
+keyboardGuess =
+    Keyboard.downs <|
+        \key ->
+            let
+                char =
+                    Char.fromCode key
+            in
+                if List.member char chars then
+                    Guess char
+                else
+                    DoNothing
