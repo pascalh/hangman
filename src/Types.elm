@@ -36,3 +36,4 @@ type Msg
     | LibraryFetch (Result Http.Error (List String))
     | OpenPage Page
     | MinWordSizeModify (Int -> Int)
+    | DoNothing
