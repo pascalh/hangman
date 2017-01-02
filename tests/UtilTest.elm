@@ -3,7 +3,8 @@ module UtilTest exposing (testUtil)
 import Test exposing (..)
 import Expect exposing (..)
 import Fuzz exposing (..)
-import Util exposing (get, containsOnlyLetters)
+import Util exposing (get, containsOnlyLetters, isSubsetOf)
+import Set
 
 
 testUtil : Test
@@ -11,6 +12,7 @@ testUtil =
     describe "Util Test Suite"
         [ testsGet
         , testsContainsOnlyLetters
+        , testIsSubsetOf
         ]
 
 
@@ -58,6 +60,38 @@ propGetNegativeIndex =
             "Get returns empty string for negative index"
         <|
             \( list, index ) -> equal (get index list) ""
+
+
+
+-- Tests for isSubsetOf
+
+
+testIsSubsetOf : Test
+testIsSubsetOf =
+    describe "isSubsetOf"
+        [ testSubsetOf [] [] True
+        , testSubsetOf [] [ 1, 2 ] True
+        , testSubsetOf [ 1 ] [] False
+        , testSubsetOf [ 3, 1 ] [ 1, 3, 2 ] True
+        , testSubsetOf [ 3, 1 ] [ 1, 2 ] False
+        ]
+
+
+testSubsetOf : List Int -> List Int -> Bool -> Test
+testSubsetOf sub super expected =
+    let
+        subset =
+            Set.fromList sub
+
+        superset =
+            Set.fromList super
+
+        description =
+            "check if " ++ toString sub ++ "is a subset of " ++ toString super
+    in
+        test description <|
+            \() ->
+                equal expected <| isSubsetOf subset superset
 
 
 
