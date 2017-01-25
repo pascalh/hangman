@@ -134,13 +134,46 @@ viewOptions game =
     div [ style css ]
         [ text "Select the minimum length of words:"
         , div []
-            [ button [ onClick (MinWordSizeModify (\x -> x - 1)) ] [ text "-" ]
+            [ button
+                [ onClick (MinWordSizeModify Decrease)
+                , disabled (not <| minWordLengthChangeAllowed game)
+                ]
+                [ text "-" ]
             , text <| toString <| game.minWordSize
-            , button [ onClick (MinWordSizeModify (\x -> x + 1)) ] [ text "+" ]
+            , button
+                [ onClick (MinWordSizeModify Increase)
+                , disabled (not <| minWordLengthChangeAllowed game)
+                ]
+                [ text "+" ]
             ]
         , br [] []
         , button [ onClick (OpenPage Gameboard) ] [ text "back" ]
         ]
+
+
+minWordLengthChangeAllowed : Game -> Bool
+minWordLengthChangeAllowed game =
+    let
+        lengths =
+            List.map length game.words
+
+        min =
+            case List.minimum lengths of
+                Nothing ->
+                    0
+
+                Just n ->
+                    n
+
+        max =
+            case List.maximum lengths of
+                Nothing ->
+                    0
+
+                Just n ->
+                    n
+    in
+        min < game.minWordSize && game.minWordSize < max
 
 
 css : List ( String, String )
