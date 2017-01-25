@@ -46,8 +46,17 @@ update action game =
         StartGameWithWord w ->
             ( startGameWithWord w game, Cmd.none )
 
-        MinWordSizeModify f ->
+        MinWordSizeModify action ->
             let
+                f : Int -> Int
+                f x =
+                    case action of
+                        Increase ->
+                            x + 1
+
+                        Decrease ->
+                            x - 1
+
                 newMinWordSize : Int
                 newMinWordSize =
                     f <| game.minWordSize

@@ -35,5 +35,10 @@ type Msg
     | StartGameWithWord String
     | LibraryFetch (Result Http.Error (List String))
     | OpenPage Page
-    | MinWordSizeModify (Int -> Int)
+    | MinWordSizeModify CounterAction
     | DoNothing
+
+
+type CounterAction
+    = Increase
+    | Decrease

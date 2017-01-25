@@ -134,9 +134,9 @@ viewOptions game =
     div [ style css ]
         [ text "Select the minimum length of words:"
         , div []
-            [ button [ onClick (MinWordSizeModify (\x -> x - 1)) ] [ text "-" ]
+            [ button [ onClick (MinWordSizeModify Decrease) ] [ text "-" ]
             , text <| toString <| game.minWordSize
-            , button [ onClick (MinWordSizeModify (\x -> x + 1)) ] [ text "+" ]
+            , button [ onClick (MinWordSizeModify Increase) ] [ text "+" ]
             ]
         , br [] []
         , button [ onClick (OpenPage Gameboard) ] [ text "back" ]
