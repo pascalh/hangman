@@ -4,7 +4,8 @@ import Test exposing (..)
 import Tuple exposing (first)
 import Expect exposing (..)
 import Fuzz exposing (..)
-import Core exposing (update, initialGame)
+import Set
+import Core exposing (update)
 import Util exposing (chars)
 import Types exposing (..)
 
@@ -16,6 +17,7 @@ testCore =
         , propWin
         , testLose
         , testGameover
+        , testPage
         ]
 
 
@@ -71,6 +73,27 @@ testGameover =
                 |> Expect.equal (Lost { word = "a" })
 
 
+testPage : Test
+testPage =
+    test "Guessing characters only possible on game page" <|
+        \() ->
+            let
+                expected =
+                    Active
+                        { guessedCharacters = Set.empty
+                        , mistakesLeft = defaultMinWordSize
+                        , word = "a"
+                        }
+            in
+                (run
+                    [ StartGameWithWord "a"
+                    , OpenPage Options
+                    , Guess 'a'
+                    ]
+                ).state
+                    |> Expect.equal expected
+
+
 
 -- Util functions
 
@@ -78,6 +101,24 @@ testGameover =
 run : List Msg -> Game
 run =
     List.foldl (\msg game -> Tuple.first (update msg game)) initialGame
+
+
+
+-- initial game config
+
+
+defaultMinWordSize : Int
+defaultMinWordSize =
+    6
+
+
+initialGame : Game
+initialGame =
+    { state = Pregame
+    , words = []
+    , minWordSize = defaultMinWordSize
+    , page = Gameboard
+    }
 
 
 
