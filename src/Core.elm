@@ -38,7 +38,14 @@ update action game =
                 ( newGame, generate StartGameWithWord (wordGen newGame) )
 
         Guess c ->
-            ( step c game, Cmd.none )
+            let
+                newGame =
+                    if game.page == Gameboard then
+                        step c game
+                    else
+                        game
+            in
+                ( newGame, Cmd.none )
 
         NewGame ->
             ( game, generate StartGameWithWord (wordGen game) )
