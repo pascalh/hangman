@@ -1,16 +1,16 @@
 module Hangman exposing (main)
 
-import Types exposing (Msg, Game)
+import Browser exposing (document)
+import Core exposing (fetchLibrary, initialGame, subscriptions, update)
+import Types exposing (Game, Msg)
 import View exposing (view)
-import Core exposing (update, initialGame, fetchLibrary, subscriptions)
-import Html exposing (program)
 
 
-main : Program Never Game Msg
+main : Program () Game Msg
 main =
-    Html.program
+    Browser.element
         { view = view
         , update = update
-        , init = ( initialGame, fetchLibrary )
+        , init = \() -> ( initialGame, fetchLibrary )
         , subscriptions = subscriptions
         }

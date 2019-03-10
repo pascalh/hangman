@@ -1,13 +1,13 @@
 module CoreTest exposing (testCore)
 
-import Test exposing (..)
-import Tuple exposing (first)
+import Core exposing (update)
 import Expect exposing (..)
 import Fuzz exposing (..)
 import Set
-import Core exposing (update)
-import Util exposing (chars)
+import Test exposing (..)
+import Tuple exposing (first)
 import Types exposing (..)
+import Util exposing (chars)
 
 
 testCore : Test
@@ -31,7 +31,7 @@ testWin =
                         StartGameWithWord "abc"
                             :: guess "bacc"
             in
-                equal result.state Win
+            equal result.state Win
 
 
 propWin : Test
@@ -44,10 +44,11 @@ propWin =
                         StartGameWithWord word
                             :: guess word
             in
-                if String.isEmpty word then
-                    pass
-                else
-                    equal result.state Win
+            if String.isEmpty word then
+                pass
+
+            else
+                equal result.state Win
 
 
 testLose : Test
@@ -85,13 +86,13 @@ testPage =
                         , word = "a"
                         }
             in
-                (run
-                    [ StartGameWithWord "a"
-                    , OpenPage Options
-                    , Guess 'a'
-                    ]
-                ).state
-                    |> Expect.equal expected
+            (run
+                [ StartGameWithWord "a"
+                , OpenPage Options
+                , Guess 'a'
+                ]
+            ).state
+                |> Expect.equal expected
 
 
 
@@ -148,4 +149,4 @@ wordFuzzer =
 
 elements : List a -> Fuzzer a
 elements =
-    frequencyOrCrash << List.map (\x -> ( 1, constant x ))
+    frequency << List.map (\x -> ( 1, constant x ))

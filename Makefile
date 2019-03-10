@@ -1,5 +1,5 @@
 build:
-	elm-make src/Main.elm --yes --warn --output out/Main.html
+	elm make src/Main.elm --output out/Main.html
 clean:
 	rm -rf out/
 deploy:
@@ -11,4 +11,8 @@ deploy:
 	git push origin gh-pages
 	git checkout master
 test:
-	elm test
+	elm-test
+all:
+	make build
+	make test
+	elm-format src/ tests/ --validate

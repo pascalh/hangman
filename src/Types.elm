@@ -1,4 +1,4 @@
-module Types exposing (..)
+module Types exposing (CounterAction(..), Game, Msg(..), Page(..), State(..))
 
 import Http
 import Set

@@ -1,8 +1,8 @@
 module View exposing (view)
 
 import Html exposing (..)
+import Html.Attributes exposing (disabled, href, style, target)
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (style, disabled, href, target)
 import Set
 import String exposing (..)
 import Types exposing (..)
@@ -21,14 +21,14 @@ view game =
 
 newGame : Html Msg
 newGame =
-    div [ style [ ( "padding-top", "50px" ) ] ]
+    div [ style "padding-top" "50px" ]
         [ button [ onClick NewGame ] [ text "New game" ]
         ]
 
 
 options : Html Msg
 options =
-    div [ style [] ]
+    div []
         [ button [ onClick (OpenPage Options) ] [ text "Options" ]
         ]
 
@@ -36,20 +36,14 @@ options =
 viewGameboard : Game -> Html Msg
 viewGameboard game =
     div
-        [ style
-            (( "margin-left", "50px" )
-                :: ( "margin-right", "50px" )
-                :: css
-            )
-        ]
+        ([ style "margin-left" "50px", style "margin-right" "50px" ] ++ css)
     <|
         case game.state of
-            LibraryFetchError e ->
+            LibraryFetchError _ ->
                 [ h2 []
                     [ text "Could not fetch remote word list from "
                     , linkToWordLibrary
                     , text ". "
-                    , text <| toString e
                     ]
                 ]
 
@@ -75,14 +69,13 @@ viewGameboard game =
                 [ h1 [] [ text <| displayString s.guessedCharacters s.word ]
                 , text <|
                     "Allowed number of mistakes left: "
-                        ++ toString s.mistakesLeft
+                        ++ String.fromInt s.mistakesLeft
                 , br [] []
                 , br [] []
                 ]
-                    ++ (List.map
-                            (\char -> buildGuessButton char s.guessedCharacters)
-                            chars
-                       )
+                    ++ List.map
+                        (\char -> buildGuessButton char s.guessedCharacters)
+                        chars
                     ++ [ br [] []
                        , br [] []
                        , newGame
@@ -101,7 +94,7 @@ linkToWordLibrary =
     a
         [ href "https://github.com/dariusk/corpora/blob/master/data/words/nouns.json"
         , target "_blank"
-        , style [ ( "color", "rgb(3, 33, 73)" ) ]
+        , style "color" "rgb(3, 33, 73)"
         ]
         [ text "dictionary" ]
 
@@ -112,8 +105,8 @@ buildGuessButton c guessedCharacters =
         alreadyGuessed =
             Set.member c guessedCharacters
     in
-        button [ onClick (Guess c), disabled alreadyGuessed ]
-            [ text (String.fromChar c) ]
+    button [ onClick (Guess c), disabled alreadyGuessed ]
+        [ text (String.fromChar c) ]
 
 
 displayString : Set.Set Char -> String -> String
@@ -123,15 +116,16 @@ displayString guessedChars word =
         visualize char =
             if Set.member char guessedChars then
                 " " ++ String.fromList [ char ] ++ " "
+
             else
                 " _ "
     in
-        String.concat <| List.map visualize <| String.toList word
+    String.concat <| List.map visualize <| String.toList word
 
 
 viewOptions : Game -> Html Msg
 viewOptions game =
-    div [ style css ]
+    div css
         [ text "Select the minimum length of words:"
         , div []
             [ button
@@ -139,7 +133,7 @@ viewOptions game =
                 , disabled (not <| minWordLengthChangeAllowed game)
                 ]
                 [ text "-" ]
-            , text <| toString <| game.minWordSize
+            , text <| String.fromInt <| game.minWordSize
             , button
                 [ onClick (MinWordSizeModify Increase)
                 , disabled (not <| minWordLengthChangeAllowed game)
@@ -173,15 +167,16 @@ minWordLengthChangeAllowed game =
                 Just n ->
                     n
     in
-        min < game.minWordSize && game.minWordSize < max
+    min < game.minWordSize && game.minWordSize < max
 
 
-css : List ( String, String )
+css : List (Attribute msg)
 css =
-    [ ( "font-family", "sans-serif" )
-    , ( "color", "rgb(3, 33, 73)" )
-    , ( "text-align", "center" )
-    , ( "background-color", "rgb(200, 220, 200)" )
-    , ( "padding-top", "70px" )
-    , ( "padding-bottom", "50px" )
-    ]
+    List.map (\( attribute, value ) -> style attribute value) <|
+        [ ( "font-family", "sans-serif" )
+        , ( "color", "rgb(3, 33, 73)" )
+        , ( "text-align", "center" )
+        , ( "background-color", "rgb(200, 220, 200)" )
+        , ( "padding-top", "70px" )
+        , ( "padding-bottom", "50px" )
+        ]

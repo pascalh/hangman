@@ -1,14 +1,15 @@
-module Util exposing (..)
+module Util exposing (chars, containsOnlyLetters, get, isSubsetOf)
 
+import Char exposing (..)
 import Set
 import String
-import Char exposing (..)
 
 
 get : Int -> List String -> String
 get n list =
     if n < 0 then
         ""
+
     else
         case list of
             [] ->
@@ -17,6 +18,7 @@ get n list =
             x :: xs ->
                 if n == 0 then
                     x
+
                 else
                     get (n - 1) xs
 

@@ -1,10 +1,10 @@
 module UtilTest exposing (testUtil)
 
-import Test exposing (..)
 import Expect exposing (..)
 import Fuzz exposing (..)
-import Util exposing (get, containsOnlyLetters, isSubsetOf)
 import Set
+import Test exposing (..)
+import Util exposing (containsOnlyLetters, get, isSubsetOf)
 
 
 testUtil : Test
@@ -22,7 +22,7 @@ testUtil =
 
 testsGet : Test
 testsGet =
-    describe "Get"
+    describe "Index-based access of lists"
         [ propGetWorks
         , propGetEmptyList
         , propGetNegativeIndex
@@ -43,10 +43,10 @@ propGetWorks =
             let
                 indexes : List Int
                 indexes =
-                    List.range 0 (List.length list |> \x -> x - 1)
+                    List.range 0 (List.length list |> (\x -> x - 1))
             in
-                Expect.equalLists list <|
-                    List.map (\i -> Util.get i list) indexes
+            Expect.equalLists list <|
+                List.map (\i -> Util.get i list) indexes
 
 
 propGetNegativeIndex : Test
@@ -54,12 +54,12 @@ propGetNegativeIndex =
     let
         negativeInt : Fuzzer Int
         negativeInt =
-            Fuzz.map (\x -> min (-1) <| negate <| abs x) int
+            Fuzz.map (\x -> min -1 <| negate <| abs x) int
     in
-        fuzz (tuple ( list string, negativeInt ))
-            "Get returns empty string for negative index"
-        <|
-            \( list, index ) -> equal (get index list) ""
+    fuzz (tuple ( list string, negativeInt ))
+        "Get returns empty string for negative index"
+    <|
+        \( list, index ) -> equal (get index list) ""
 
 
 
@@ -86,12 +86,15 @@ testSubsetOf sub super expected =
         superset =
             Set.fromList super
 
+        listToString xs =
+            String.join "," <| List.map String.fromInt xs
+
         description =
-            "check if " ++ toString sub ++ "is a subset of " ++ toString super
+            "check if " ++ listToString sub ++ "is a subset of " ++ listToString super
     in
-        test description <|
-            \() ->
-                equal expected <| isSubsetOf subset superset
+    test description <|
+        \() ->
+            equal expected <| isSubsetOf subset superset
 
 
 
@@ -117,6 +120,6 @@ containsTest word expected =
         description =
             "word under test \"" ++ word ++ "\""
     in
-        test description <|
-            \() ->
-                equal expected (containsOnlyLetters word)
+    test description <|
+        \() ->
+            equal expected (containsOnlyLetters word)
