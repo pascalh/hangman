@@ -1,12 +1,12 @@
-module Core exposing (update, initialGame, fetchLibrary, subscriptions)
+module Core exposing (fetchLibrary, initialGame, subscriptions, update)
 
-import Random exposing (Generator, Seed, initialSeed, generate, map)
-import String
-import Set
-import Http exposing (get)
-import Json.Decode exposing (..)
+import Browser.Events exposing (..)
 import Char exposing (toCode)
-import Keyboard
+import Http exposing (get)
+import Json.Decode as Decode exposing (..)
+import Random exposing (Generator, Seed, generate, initialSeed, map)
+import Set
+import String
 import Types exposing (..)
 import Util exposing (..)
 
@@ -35,17 +35,18 @@ update action game =
                 newGame =
                     { game | words = List.filter containsOnlyLetters lib }
             in
-                ( newGame, generate StartGameWithWord (wordGen newGame) )
+            ( newGame, generate StartGameWithWord (wordGen newGame) )
 
         Guess c ->
             let
                 newGame =
                     if game.page == Gameboard then
                         step c game
+
                     else
                         game
             in
-                ( newGame, Cmd.none )
+            ( newGame, Cmd.none )
 
         NewGame ->
             ( game, generate StartGameWithWord (wordGen game) )
@@ -53,11 +54,11 @@ update action game =
         StartGameWithWord w ->
             ( startGameWithWord w game, Cmd.none )
 
-        MinWordSizeModify action ->
+        MinWordSizeModify minWordSizeAction ->
             let
                 f : Int -> Int
                 f x =
-                    case action of
+                    case minWordSizeAction of
                         Increase ->
                             x + 1
 
@@ -68,9 +69,9 @@ update action game =
                 newMinWordSize =
                     f <| game.minWordSize
             in
-                ( { game | minWordSize = newMinWordSize }
-                , Cmd.none
-                )
+            ( { game | minWordSize = newMinWordSize }
+            , Cmd.none
+            )
 
         OpenPage p ->
             ( { game | page = p }, Cmd.none )
@@ -108,11 +109,11 @@ wordGen game =
 
         maxIndex : Int
         maxIndex =
-            (List.length words) - 1
+            List.length words - 1
     in
-        Random.map
-            (\index -> String.toUpper <| Util.get index words)
-            (Random.int 0 maxIndex)
+    Random.map
+        (\index -> String.toUpper <| Util.get index words)
+        (Random.int 0 maxIndex)
 
 
 step : Char -> Game -> Game
@@ -130,12 +131,13 @@ step c game =
                     , mistakesLeft =
                         if mistakeMade then
                             mistakesLeft - 1
+
                         else
                             mistakesLeft
                     , word = word
                     }
             in
-                { game | state = nextState newState }
+            { game | state = nextState newState }
 
         _ ->
             game
@@ -156,12 +158,14 @@ nextState s =
             isSubsetOf (Set.fromList <| String.toList s.word)
                 s.guessedCharacters
     in
-        if isLost then
-            Lost { word = s.word }
-        else if isWon then
-            Win
-        else
-            Active s
+    if isLost then
+        Lost { word = s.word }
+
+    else if isWon then
+        Win
+
+    else
+        Active s
 
 
 fetchLibrary : Cmd Msg
@@ -175,9 +179,9 @@ fetchLibrary =
         liburl =
             "https://raw.githubusercontent.com/dariusk/corpora/master/data/words/nouns.json"
     in
-        Http.send
-            LibraryFetch
-            (Http.get liburl decodeLibrary)
+    Http.send
+        LibraryFetch
+        (Http.get liburl decodeLibrary)
 
 
 subscriptions : Game -> Sub Msg
@@ -190,15 +194,29 @@ subscriptions game =
             Sub.none
 
 
+keyDecoder : Decode.Decoder Msg
+keyDecoder =
+    let
+        toGuessMsg : String -> Msg
+        toGuessMsg str =
+            case String.uncons str of
+                Just ( char, _ ) ->
+                    let
+                        upper =
+                            Char.toUpper char
+                    in
+                    if List.member upper chars then
+                        Guess upper
+
+                    else
+                        DoNothing
+
+                Nothing ->
+                    DoNothing
+    in
+    Decode.map toGuessMsg <| Decode.field "key" Decode.string
+
+
 keyboardGuess : Sub Msg
 keyboardGuess =
-    Keyboard.downs <|
-        \key ->
-            let
-                char =
-                    Char.fromCode key
-            in
-                if List.member char chars then
-                    Guess char
-                else
-                    DoNothing
+    onKeyPress keyDecoder

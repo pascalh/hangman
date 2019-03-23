@@ -1,6 +1,10 @@
-language: node_js
-node_js:
-  - "0.12"
-before_script:
-  - npm install -g elm elm-test
-script: elm-test
+language: elm
+script: make all
+deploy:
+  provider: pages
+  local-dir: out/
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
+  keep-history: true
+  on:
+    branch: master
