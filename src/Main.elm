@@ -1,4 +1,4 @@
-module Hangman exposing (main)
+module Main exposing (main)
 
 import Browser exposing (document)
 import Core exposing (fetchLibrary, initialGame, subscriptions, update)
