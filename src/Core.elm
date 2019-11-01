@@ -179,9 +179,10 @@ fetchLibrary =
         liburl =
             "https://raw.githubusercontent.com/dariusk/corpora/master/data/words/nouns.json"
     in
-    Http.send
-        LibraryFetch
-        (Http.get liburl decodeLibrary)
+    Http.get
+        { url = liburl
+        , expect = Http.expectJson LibraryFetch decodeLibrary
+        }
 
 
 subscriptions : Game -> Sub Msg
